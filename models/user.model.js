@@ -1,5 +1,5 @@
 import { model, Schema } from "mongoose";
-import bcrypt from "bcryptjs"
+import bcrypt, { compare } from "bcryptjs"
 import jwt from "jsonwebtoken"
 const userSchema=new Schema({
     fullName:{
@@ -69,6 +69,9 @@ userSchema.methods={
                 expiresIn:process.env.JWT_EXPIRY
             }
         )
+    },
+    comparePassword:async function (plainTextPassword) {
+        return await bcrypt.compare(plainTextPassword,this.password)
     }
 }
 
