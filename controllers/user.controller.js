@@ -50,8 +50,36 @@ const register=async(req,res,next)=>{
     
 }
 
-const login=(req,res)=>{
+const login=async(req,res,next)=>{
+    try {
+        const {email,password} = req.body
 
+    if (!email || !password) {
+        return next(new AppError('all field are required',400))
+    }
+
+    const user=await User.findOne({
+        email
+    }).select('+password')
+
+    if (!user || !user.comparePassword(password)) {
+        return next(new AppError('email or password does not match',400))
+    }
+
+    const token=await user.generateJWTToken()
+
+    user.password=undefined
+
+    res.cookie('token',token,cookieOption)
+
+    res.status(200).json({
+        success:true,
+        message:"user logged in successfully",
+        user
+    })
+    } catch (error) {
+        return next(new AppError(error.message,500))
+    }
 }
 
 const logout=(req,res)=>{
