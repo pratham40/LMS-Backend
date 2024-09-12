@@ -1,5 +1,5 @@
-import User from "../models/user.model"
-import AppError from "../utils/error.util"
+import User from "../models/user.model.js"
+import AppError from "../utils/error.util.js"
 const cookieOption={
     maxAge:7*24*60*60*1000, // 7 days
     httpOnly:true,
