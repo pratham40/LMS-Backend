@@ -5,13 +5,13 @@ mongoose.set('strictQuery',false)  // not gave error when extra info is required
 const connectionToDB=async()=>{
     try {
         const {connection} = await mongoose.connect(
-            process.env.MONGO_URL // || 
+            "mongodb://localhost:27017/LMS "
         )
         if (connection) {
-            console.log(`connected to ${connection}`);
+            console.log(`connected to ${connection.host}`);
         }
     } catch (error) {
-        console.log(e.message);
+        console.log(error.message);
         process.exit(1)
     }
 }

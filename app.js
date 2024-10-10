@@ -20,14 +20,17 @@ app.use('/ping', (req, res) => {
     res.send('/pong');
 });
 
+
+//user routes
+
 app.use("/api/v1/user",userRoutes)
 
-app.use(errorMiddleware)
 
 
-// Routes of 3 modules
 app.all('*', (req, res) => {
     res.status(404).send('OOPS! 404 Page Not Found');
 });
+
+app.use(errorMiddleware)
 
 export default app;
