@@ -3,6 +3,7 @@ import AppError from "../utils/error.util.js";
 import cloudinary from "cloudinary";
 import { sendEmail } from "../utils/sendEmail.js";
 import crypto from "crypto"
+import fs from "fs"
 
 const cookieOption = {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -41,7 +42,6 @@ const register = async (req, res, next) => {
     }
 
     // TODO : File Upload
-    console.log(req.file);  
     if (req.file) {
         console.log(req.file);
         
@@ -215,5 +215,88 @@ const resetPassword=async (req,res,next) => {
         
 }
 
+const changePassword=async (req,res,next) => {
+    const {oldPassword,newPassword}=req.body
 
-export { register, login, logout, getProfile,forgotPassword,resetPassword };
+    if(!oldPassword || !newPassword){
+        return next(new AppError("old password and new password are required",400))
+    }
+
+    const {id} =req.user
+    const user=await User.findById(id)
+
+    if(!user){
+        return next(new AppError("User not found",404))
+        }
+
+    const isValid=await bcrypt.compare(oldPassword,user.password)
+    if(!isValid){
+        return next(new AppError("Invalid old password",400))
+    }
+
+    user.password=newPassword
+
+    await user.save()
+
+    user.password=undefined
+
+    res.status(200).json({
+        success: true,
+        message: `Password changed successfully`
+    })
+    
+}
+
+
+const updateUser=async (req,res,next) => {
+    const {fullName}=req.body
+    const {id}=req.user
+    const user=await User.findById(id)
+    if(!user){
+        return next(new AppError("User not found",404))
+        }
+    
+        if (fullName) {
+            user.fullName = fullName;
+        }
+
+        if (req.file) {
+            await cloudinary.v2.uploader.destroy(
+                user.avatar.public_id
+            )
+
+            try {
+                const result = cloudinary.v2.uploader.upload(req.file.path, {
+                    folder: "lms",
+                    width: 250,
+                    height: 250,
+                    gravity: "faces",
+                    crop: "fill",
+                });
+    
+                if (result) {
+                    user.avatar.public_id = (await result).public_id;
+                    user.avatar.secure_url = (await result).secure_url;
+    
+                    //  Remove file from server
+    
+                    fs.rm(`uploads/${req.file.fileName}`)
+                }
+            } catch (error) { 
+                return next(new AppError(error || 'File not uploaded try again !!!',500))
+            }
+
+        }
+
+        await user.save()
+
+        res.status(200).json({
+            status: 'success',
+            message:'User updated successfully',
+            user
+        })
+
+}
+
+
+export { register, login, logout, getProfile,forgotPassword,resetPassword,changePassword,updateUser };
