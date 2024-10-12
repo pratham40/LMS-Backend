@@ -60,7 +60,7 @@ const register = async (req, res, next) => {
 
                 //  Remove file from server
 
-                fs.rm(`uploads/${req.file.fileName}`)
+                fs.unlinkSync(`uploads/${req.file.path}`)
             }
         } catch (error) { 
             return next(new AppError(error || 'File not uploaded try again !!!',500))
