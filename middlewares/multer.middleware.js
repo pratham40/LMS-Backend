@@ -11,15 +11,19 @@ const upload=multer({
             cb(null,file.originalname)
         }
     }),
-    fileFilter:(_req,file,cb)=>{
-        let ext=path.extname(file.originalname)
-
-        if (ext!=='.jpg' && ext!=='.jpeg' && ext!=='.webp' && ext!=='.png' && ext!=='.mp4') {
-            cb(new Error(`unsupported file type ! ${ext} `),false)
-            return;
+    fileFilter: (_req, file, cb) => {
+        let ext = path.extname(file.originalname).toLowerCase()
+        
+        // Allow common video formats
+        const allowedVideoFormats = ['.mp4', '.mov', '.avi', '.wmv', '.flv', '.mkv', '.webm']
+        const allowedImageFormats = ['.jpg', '.jpeg', '.webp', '.png']
+        
+        if (allowedVideoFormats.includes(ext) || allowedImageFormats.includes(ext)) {
+            cb(null, true)
+        } else {
+            cb(new Error(`Unsupported file type! ${ext}`), false)
         }
-        cb(null,true)
-    },
+    }
 })
 
-export default upload;
+export default upload

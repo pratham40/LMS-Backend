@@ -148,8 +148,18 @@ const addLecturesByCourseId=async (req,res,next) => {
 
         if (req.file) {
             try {
-                const result = await cloudinary.uploader.upload(req.file.path, {
-                    folder: "lms"
+                const result = await cloudinary.v2.uploader.upload(req.file.path, {
+                    folder: "lms",
+                    resource_type: "video", // Specify resource type as video
+                    chunk_size: 6000000, // Use chunked upload for large files
+                    eager: [
+                        // Create an optimized version
+                        { 
+                            streaming_profile: "full_hd",
+                            format: "m3u8" 
+                        }
+                    ],
+                    eager_async: true // Process optimizations asynchronously
                 })
                 if (result) {
                     lectureData.lecture = {
@@ -159,6 +169,10 @@ const addLecturesByCourseId=async (req,res,next) => {
                     fs.unlinkSync(req.file.path)
                 }
             } catch (error) {
+                // Clean up file if upload fails
+                if(req.file) {
+                    fs.unlinkSync(req.file.path)
+                }
                 return next(new AppError(error.message, 500))
             }
         }
@@ -173,6 +187,10 @@ const addLecturesByCourseId=async (req,res,next) => {
             course
         })
     } catch (error) {
+        // Clean up file if any other error occurs
+        if(req.file) {
+            fs.unlinkSync(req.file.path)
+        }
         next(new AppError(error.message, 400))
     }
 }
