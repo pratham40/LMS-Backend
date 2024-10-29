@@ -44,7 +44,6 @@ This is the backend service for the Learning Management System (LMS), providing 
      RAZORPAY_SECRET=your_razorpay_secret
      RAZORPAY_PLAN_ID=your_razorpay_plan_id
      ```
-     ```
 4. Start the server:
    ```bash
    npm run dev
