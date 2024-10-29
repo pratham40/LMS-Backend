@@ -12,73 +12,89 @@ const cookieOption = {
 };
 
 const register = async (req, res, next) => {
-    const { fullName, email, password } = req.body;
-
-    if (!fullName || !email || !password) {
-        return next(new AppError("All Field are required", 400));
-    }
-
-    const userExist = await User.findOne({ email });
-
-    if (userExist) {
-        return next(new AppError("User already exist", 400));
-    }
-
-    const user = await User.create({
-        fullName,
-        email,
-        password,
-        avatar: {
-            public_id: email,
-            secure_url:
-                "https://images.pexels.com/photos/28209723/pexels-photo-28209723/free-photo-of-women-overlooking-city-at-night.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load",
-        },
-    });
-
-    if (!user) {
-        return next(
-            new AppError("User registration failed please try again !!!", 400)
-        );
-    }
-
-    // TODO : File Upload
-    if (req.file) {
-        console.log(req.file);
-        
-        try {
-            const result = cloudinary.v2.uploader.upload(req.file.path, {
-                folder: "lms",
-                width: 250,
-                height: 250,
-                gravity: "faces",
-                crop: "fill",
-            });
-
-            if (result) {
-                user.avatar.public_id = (await result).public_id;
-                user.avatar.secure_url = (await result).secure_url;
-
-                //  Remove file from server
-
-                fs.unlinkSync(`uploads/${req.file.path}`)
-            }
-        } catch (error) { 
-            return next(new AppError(error || 'File not uploaded try again !!!',500))
+    try {
+        const { fullName, email, password } = req.body;
+    
+        if (!fullName || !email || !password) {
+            return next(new AppError("All Field are required", 400));
         }
+    
+        const userExist = await User.findOne({ email });
+    
+        if (userExist) {
+            return next(new AppError("User already exist", 400));
+        }
+
+        const role = req.body.role || "USER";
+    
+        const user = await User.create({
+            fullName,
+            email,
+            password,
+            role,
+            avatar: {
+                public_id: email,
+                secure_url:
+                    "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png",
+            },
+        });
+    
+        if (!user) {
+            return next(
+                new AppError("User registration failed please try again !!!", 400)
+            );
+        }
+    
+        // TODO : File Upload
+        if (req.file) {
+            console.log(req.file);
+            try {
+                const result = cloudinary.v2.uploader.upload(req.file.path, {
+                    folder: "lms",
+                    width: 250,
+                    height: 250,
+                    gravity: "faces",
+                    crop: "fill",
+                });
+    
+                if (result) {
+                    user.avatar.public_id = (await result).public_id;
+                    user.avatar.secure_url = (await result).secure_url;
+    
+                    //  Remove file from server
+    
+                    fs.unlinkSync(req.file.path)
+                }
+            } catch (error) { 
+                return next(new AppError(error || 'File not uploaded try again !!!',500))
+            }
+        }
+    
+        await user.save();
+    
+        user.password = undefined;
+    
+        const token = await user.generateJWTToken();
+    
+        res.cookie("token", token, cookieOption);
+
+        if (user.role === "ADMIN") {
+            res.status(201).json({
+                success: true,
+                message: "Admin registered successfully",
+                user: user,
+            });
+            return;
+        }
+
+        res.status(201).json({
+            success: true,
+            message: "User registered successfully",
+            user: user,
+        });
+    } catch (error) {
+        return next(new AppError(error.message, 500));
     }
-
-    await user.save();
-
-    user.password = undefined;
-
-    const token = await user.generateJWTToken();
-
-    res.cookie("token", token, cookieOption);
-    res.status(201).json({
-        success: true,
-        message: "User registered successfully",
-        user: user,
-    });
 };
 
 const login = async (req, res, next) => {
@@ -279,8 +295,7 @@ const updateUser=async (req,res,next) => {
                     user.avatar.secure_url = (await result).secure_url;
     
                     //  Remove file from server
-    
-                    fs.rm(`uploads/${req.file.fileName}`)
+                    fs.unlinkSync(req.file.path)
                 }
             } catch (error) { 
                 return next(new AppError(error || 'File not uploaded try again !!!',500))
