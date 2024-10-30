@@ -5,10 +5,10 @@ mongoose.set('strictQuery',false)  // not gave error when extra info is required
 const connectionToDB=async()=>{
     try {
         const {connection} = await mongoose.connect(
-            "mongodb://localhost:27017/LMS "
+            process.env.MONGO_URI || "mongodb://localhost:27017/LMS"
         )
         if (connection) {
-            console.log(`connected to ${connection.host}`);
+            console.log(`connected to ${connection.name} database`);
         }
     } catch (error) {
         console.log(error.message);
