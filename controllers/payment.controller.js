@@ -1,3 +1,4 @@
+import { log } from "console"
 import Payment from "../models/payment.model.js"
 import User from "../models/user.model.js"
 import { razorpay } from "../server.js"
@@ -174,15 +175,69 @@ const cancelSubscription = async (req, res, next) => {
 
 const allPayments = async (req, res, next) => {
     try {
-        const { count } = req.query
+        const { count,skip } = req.query
 
-        const subscriptions = await razorpay.subscriptions.all({
-            count: count || 10
+        const allPayments = await razorpay.subscriptions.all({
+            count:count || 10,
+            skip:skip || 0
         })
+
+        const monthName=[
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December"
+        ]
+
+        const finalMonth={
+            January:0,
+            February:0,
+            March:0,
+            April:0,
+            May:0,
+            June:0,
+            July:0,
+            August:0,
+            September:0,
+            October:0,
+            November:0,
+            December:0
+        }
+
+        const monthlyWisePayment=allPayments.items.map((payment)=>{
+            const monthInNumber=new Date(payment.start_at*1000).getMonth();
+            return monthName[monthInNumber];
+        })
+
+        monthlyWisePayment.map((month)=>{
+            Object.keys(finalMonth).forEach((key)=>{
+                if (key===month) {
+                    finalMonth[key]+=1;
+                }
+            })
+        })
+
+        const monthlySalesRecord=[]
+
+        Object.keys(finalMonth).forEach((month)=>{
+            monthlySalesRecord.push(finalMonth[month])
+        })
+        
 
         res.status(200).json({
             success: true,
-            subscriptions
+            message:"Monthly wise payment",
+            monthlySalesRecord,
+            allPayments,
+            finalMonth
         })
     } catch (error) {
         return next(new AppError(error.message, 400))
