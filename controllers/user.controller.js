@@ -4,12 +4,15 @@ import cloudinary from "cloudinary";
 import { sendEmail } from "../utils/sendEmail.js";
 import crypto from "crypto"
 import fs from "fs"
+import { OAuth2Client } from "google-auth-library";
 
 const cookieOption = {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     httpOnly: true,
     secure: true,
 };
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const register = async (req, res, next) => {
     try {
@@ -98,33 +101,73 @@ const register = async (req, res, next) => {
 };
 
 const login = async (req, res, next) => {
+    const { email, password,tokenId } = req.body;
     try {
-        const { email, password } = req.body;
+        if (tokenId) {
+            const ticket = await client.verifyIdToken({
+                idToken: tokenId,
+                audience: process.env.GOOGLE_CLIENT_ID,
+            });
+            console.log('====================================');
+            console.log(ticket);
+            console.log('====================================');
+            const { email, name, picture,sub } = ticket.getPayload();
+            const user = await User.findOne({ googleId: sub });
+            if (!user) {
+                user = await User.create({
+                    fullName: name,
+                    email,
+                    avatar: {
+                        public_id: sub,
+                        secure_url: picture,
+                    },
+                    googleId:sub
+                });
 
-        if (!email || !password) {
-            return next(new AppError("all field are required", 400));
+            }
+            console.log('====================================');
+            console.log(user);
+            console.log('====================================');
+            await user.save();
+            const token = await user.generateJWTTokenGoogle();
+            console.log('====================================');
+            console.log(token);
+            console.log('====================================');
+            return res.status(200).json({
+                success: true,
+                message: "user logged in successfully",
+                user,
+                token
+            });
+        }else{
+            if (!email || !password) {
+                return next(new AppError("all field are required", 400));
+            }
+    
+            const user = await User.findOne({
+                email,
+            }).select("+password");
+    
+            if (!user || !user.comparePassword(password)) {
+                return next(new AppError("email or password does not match", 400));
+            }
+    
+            const token = await user.generateJWTToken();
+    
+            user.password = undefined;
+    
+            res.cookie("token", token, cookieOption);
+    
+            res.status(200).json({
+                success: true,
+                message: "user logged in successfully",
+                user,
+            });
         }
-
-        const user = await User.findOne({
-            email,
-        }).select("+password");
-
-        if (!user || !user.comparePassword(password)) {
-            return next(new AppError("email or password does not match", 400));
-        }
-
-        const token = await user.generateJWTToken();
-
-        user.password = undefined;
-
-        res.cookie("token", token, cookieOption);
-
-        res.status(200).json({
-            success: true,
-            message: "user logged in successfully",
-            user,
-        });
     } catch (error) {
+        console.log('====================================');
+        console.log(error.message);
+        console.log('====================================');
         return next(new AppError(error.message, 500));
     }
 };

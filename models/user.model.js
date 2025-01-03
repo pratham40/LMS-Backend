@@ -2,12 +2,11 @@ import { model, Schema } from "mongoose";
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 import crypto from "crypto"
+import { log } from "console";
 const userSchema=new Schema({
     fullName:{
         type:String,
         required:[true,'Name is required'],
-        minLength:[5,"Name must be atleast 5 character"],
-        maxLength:[15,"Name must be atmost 15 character"],
         lowercase:true,
         trim:true,
 
@@ -25,7 +24,6 @@ const userSchema=new Schema({
     },
     password:{
         type:String,
-        required:[true,'password is required'],
         minLength:[5,"password must be atleast 5 character"],
         select:false
     },
@@ -49,6 +47,10 @@ const userSchema=new Schema({
     subscription:{
         id:String,
         status:String,
+    },
+    googleId:{
+        type:String,
+        unique:true
     }
 } , {timestamps:true})
 
@@ -89,6 +91,24 @@ userSchema.methods={
 
         return resetToken
     }
+}
+
+userSchema.methods.generateJWTTokenGoogle = async function () {
+    const token = jwt.sign(
+        {
+            id: this._id,
+            email: this.email,
+            role: this.role
+        },
+        process.env.JWT_SECRET,
+        {
+            expiresIn: process.env.JWT_EXPIRY
+        }
+    );
+    console.log('====================================');
+    console.log(token);
+    console.log('====================================');
+    return token;
 }
 
 const User =model('User',userSchema)
