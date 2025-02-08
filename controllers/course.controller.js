@@ -35,6 +35,9 @@ const getLecturesByCourseId = async function (req, res, next) {
 
 const createCourse = async function (req, res, next) {
     const { title, description, category, createdBy,thumbnail} = req.body
+    console.log('====================================');
+    console.log(req.body);
+    console.log('====================================');
     if (!title || !description || !category || !createdBy) {
         return next(new AppError("All fields are required", 400))
     }
@@ -49,6 +52,10 @@ const createCourse = async function (req, res, next) {
             secure_url: "dummy"
         }
     })
+
+    console.log('====================================');
+    console.log(course);
+    console.log('====================================');
 
     if (!course) {
         return next(new AppError("Course not created", 500))
@@ -71,6 +78,10 @@ const createCourse = async function (req, res, next) {
         }
 
     }
+
+    console.log('====================================');
+    console.log("hi",course);
+    console.log('====================================');
 
     await course.save()
     res.status(201).json({
