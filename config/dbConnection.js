@@ -5,7 +5,7 @@ mongoose.set('strictQuery',false)  // not gave error when extra info is required
 const connectionToDB=async()=>{
     try {
         const {connection} = await mongoose.connect(
-            `${process.env.MONGO_URL}/LMS`,
+            `${process.env.MONGO_URL}`,
         )
         // console.log(connection);
         
